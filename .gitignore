@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+*.local
+
+/README-LORENZO.md
+/public/data/
+/data/
+/public/ics/
+/public/*.pdf
+/test/s-*.png
