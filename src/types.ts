@@ -34,10 +34,15 @@ export interface Calendario {
   eventi: Evento[];
 }
 
+export interface MappaturaCategorie {
+  mappatura: Record<string, string>;
+  fallback: string;
+}
+
 export interface CalendarioMultianno {
   versione: 1;
   anno_edizione: number;
-  anni: Calendario[];
+  anni: (Calendario & { mappatura_categorie?: MappaturaCategorie })[];
 }
 
 export interface Lead {

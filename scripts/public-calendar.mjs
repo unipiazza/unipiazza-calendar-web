@@ -8,6 +8,12 @@ export function publicCalendar({ anno, aggiornato, categorie, temi_mese, eventi 
   };
 }
 
+// The multi-year response also carries the shop category mapping: unipiazza-api
+// uses it to pick the ideas for a shop's database category.
 export function publicCalendarYears({ versione, anno_edizione, anni }) {
-  return { versione, anno_edizione, anni: anni.map(publicCalendar) };
+  return {
+    versione,
+    anno_edizione,
+    anni: anni.map((anno) => ({ ...publicCalendar(anno), mappatura_categorie: anno.mappatura_categorie })),
+  };
 }
