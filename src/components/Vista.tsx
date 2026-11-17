@@ -1,13 +1,13 @@
 import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { it } from "date-fns/locale/it";
-import type { Calendario, Evento } from "../types";
-import { eventiDelGiorno, ordinaPerLivello, periodiAttivi } from "../data";
+import type { Evento } from "../types";
+import { eventiDelGiorno, occasioniDelGiorno, ordinaPerLivello, periodiAttivi } from "../data";
 import { Destra, Stella } from "./Icone";
 
 export type Modo = "mese" | "settimana" | "giorno";
 
 interface Props {
-  dati: Calendario;
+  eventi: Evento[];
   modo: Modo;
   corrente: Date;
   selezionato: Date;
@@ -36,18 +36,16 @@ function CardEvento({ e, onApri, conData, compatta }: { e: Evento; onApri: (e: E
   );
 }
 
-export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }: Props) {
+export function Vista({ eventi, modo, corrente, selezionato, onSeleziona, onApri }: Props) {
   const oggi = new Date();
 
   if (modo === "giorno") {
-    const ev = ordinaPerLivello(eventiDelGiorno(dati.eventi, iso(corrente)));
-    const per = periodiAttivi(dati.eventi, iso(corrente)).filter((p) => p.date !== iso(corrente));
+    const ev = occasioniDelGiorno(eventi, iso(corrente));
     return (
       <div className="lista">
         <h3>{format(corrente, "EEEE d MMMM yyyy", { locale: it })}</h3>
         {ev.map((e) => <CardEvento key={e.id} e={e} onApri={onApri} />)}
-        {per.map((e) => <CardEvento key={e.id} e={e} onApri={onApri} />)}
-        {ev.length + per.length === 0 && <div className="vuoto">Nessuna occasione in questo giorno. Guarda la settimana, o scegli un'altra data.</div>}
+        {ev.length === 0 && <div className="vuoto">Nessuna occasione in questo giorno. Guarda la settimana, o scegli un'altra data.</div>}
       </div>
     );
   }
@@ -57,7 +55,7 @@ export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }
     return (
       <div className="settimana">
         {giorni.map((g) => {
-          const ev = ordinaPerLivello(eventiDelGiorno(dati.eventi, iso(g)));
+          const ev = occasioniDelGiorno(eventi, iso(g));
           return (
             <div className="giorno-col" key={g.toISOString()}>
               <h4>{format(g, "EEE d", { locale: it })}</h4>
@@ -74,8 +72,7 @@ export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }
   const inizio = startOfWeek(startOfMonth(corrente), { weekStartsOn: 1 });
   const fine = endOfWeek(endOfMonth(corrente), { weekStartsOn: 1 });
   const giorni = eachDayOfInterval({ start: inizio, end: fine });
-  const delGiorno = ordinaPerLivello(eventiDelGiorno(dati.eventi, iso(selezionato)));
-  const periodiSel = periodiAttivi(dati.eventi, iso(selezionato)).filter((p) => p.date !== iso(selezionato));
+  const delGiorno = occasioniDelGiorno(eventi, iso(selezionato));
 
   return (
     <>
@@ -83,8 +80,9 @@ export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }
         {GIORNI.map((g) => <div className="gh" key={g}>{g}</div>)}
         {giorni.map((g) => {
           const k = iso(g);
-          const ev = ordinaPerLivello(eventiDelGiorno(dati.eventi, k));
-          const per = periodiAttivi(dati.eventi, k);
+          const ev = ordinaPerLivello(eventiDelGiorno(eventi, k));
+          const per = periodiAttivi(eventi, k);
+          const numeroOccasioni = ev.length + per.filter((periodo) => periodo.date !== k).length;
           const fest = ev.some((e) => e.type === "festivita" && e.color === "red");
           const cls = fest ? "fest" : ev.length ? "ric" : "";
           const primoDelPeriodo = per.find((p) => p.date === k || g.getDay() === 1 || g.getDate() === 1);
@@ -96,7 +94,7 @@ export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }
               className={"cella" + (isSameMonth(g, corrente) ? "" : " fuori") + (isSameDay(g, selezionato) ? " sel" : "")}
               onClick={() => onSeleziona(g)}
               onKeyDown={(x) => { if (x.key === "Enter" || x.key === " ") { x.preventDefault(); onSeleziona(g); } }}
-              aria-label={`${format(g, "d MMMM", { locale: it })}, ${ev.length} occasioni`}
+              aria-label={`${format(g, "d MMMM", { locale: it })}, ${numeroOccasioni} occasioni`}
             >
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span className={"n " + cls + (isSameDay(g, oggi) ? " oggi" : "")}>{format(g, "d")}</span>
@@ -121,8 +119,7 @@ export function Vista({ dati, modo, corrente, selezionato, onSeleziona, onApri }
       <div className="lista">
         <h3>{isSameDay(selezionato, oggi) ? "Oggi, " : ""}{format(selezionato, "EEEE d MMMM", { locale: it })}</h3>
         {delGiorno.map((e) => <CardEvento key={e.id} e={e} onApri={onApri} />)}
-        {periodiSel.map((e) => <CardEvento key={e.id} e={e} onApri={onApri} />)}
-        {delGiorno.length + periodiSel.length === 0 && (
+        {delGiorno.length === 0 && (
           <div className="vuoto">Nessuna occasione in questo giorno. Tocca un giorno con il pallino, o vai al <button className="link-btn" onClick={() => onSeleziona(addDays(selezionato, 1))}>giorno dopo</button>.</div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, addMonths, addWeeks, format, parseISO } from "date-fns";
 import { it } from "date-fns/locale/it";
-import type { Calendario, Evento, Lead } from "./types";
+import type { Evento, Lead } from "./types";
 import { caricaCalendario, scaricaPdf } from "./data";
 import { categoriaSalvata, leadSalvato, salvaCategoria, salvaLead } from "./lead";
 import { Onboarding } from "./components/Onboarding";
@@ -19,7 +19,7 @@ function dataIniziale(anno: number): Date {
 }
 
 export default function App() {
-  const [dati, setDati] = useState<Calendario | null>(null);
+  const [dati, setDati] = useState<Awaited<ReturnType<typeof caricaCalendario>> | null>(null);
   const [errore, setErrore] = useState("");
   const [categoria, setCategoria] = useState<string>("");
   const [onboarding, setOnboarding] = useState(false);
@@ -59,13 +59,13 @@ export default function App() {
           setWall(true);
         }
         const cat = p.get("categoria") || salvato?.categoria_id || categoriaSalvata();
-        const valida = cat && d.categorie.some((c) => c.id === cat);
+        const valida = cat && d.edizione.categorie.some((c) => c.id === cat);
         if (valida) setCategoria(cat as string);
         else if (!(vuolePdf && !sbloccatoGia)) setOnboarding(true);
-        if (!valida) setCategoria(d.categorie[0].id);
+        if (!valida) setCategoria(d.edizione.categorie[0].id);
         const vista = p.get("vista");
         if (vista === "settimana" || vista === "giorno") setModo(vista);
-        const inizio = dataIniziale(d.anno);
+        const inizio = dataIniziale(d.edizione.anno);
         setCorrente(inizio);
         setSelezionato(inizio);
         // link diretto a un evento: ?evento=2027-02-14-san-valentino
@@ -97,8 +97,8 @@ export default function App() {
   const sbloccato = !!lead;
   const etichetta = useMemo(() => {
     if (modo === "mese") return format(corrente, "MMMM yyyy", { locale: it });
-    if (modo === "settimana") return `${format(corrente, "d MMM", { locale: it })} · settimana`;
-    return format(corrente, "d MMMM", { locale: it });
+    if (modo === "settimana") return `${format(corrente, "d MMM yyyy", { locale: it })} · settimana`;
+    return format(corrente, "d MMMM yyyy", { locale: it });
   }, [modo, corrente]);
 
   function sposta(dir: 1 | -1) {
@@ -150,6 +150,17 @@ export default function App() {
   if (errore) return <div className="vuoto" style={{ margin: 40 }}>Il calendario non si carica: {errore}. Riprova tra poco.</div>;
   if (!dati) return <div className="vuoto" style={{ margin: 40, border: 0 }}>Un attimo…</div>;
 
+  const { anni, edizione } = dati;
+  const annoInVista = anni.find(({ anno }) => anno === corrente.getFullYear());
+  const temaDelMese = annoInVista?.temi_mese[String(corrente.getMonth() + 1)];
+
+  function vaiAOggi() {
+    const oggi = new Date();
+    const giorno = anni.some(({ anno }) => anno === oggi.getFullYear()) ? oggi : dataIniziale(edizione.anno);
+    setCorrente(giorno);
+    setSelezionato(giorno);
+  }
+
   return (
     <div className="app">
       <header className="header">
@@ -163,7 +174,7 @@ export default function App() {
       </header>
 
       <div className="main">
-        <Sidebar dati={dati} attiva={categoria} aperta={sidebar} onScegli={scegliCategoria} onChiudi={() => setSidebar(false)} />
+        <Sidebar dati={edizione} attiva={categoria} aperta={sidebar} onScegli={scegliCategoria} onChiudi={() => setSidebar(false)} />
         <main className="vista">
           <div className="barra-vista">
             <div className="segmenti" role="tablist">
@@ -171,26 +182,26 @@ export default function App() {
                 <button key={m} role="tab" aria-selected={modo === m} className={modo === m ? "attivo" : ""} onClick={() => setModo(m)}>{m[0].toUpperCase() + m.slice(1)}</button>
               ))}
             </div>
-            <span className="chip">{dati.eventi.length} occasioni nel {dati.anno}</span>
+            {annoInVista && <span className="chip">{annoInVista.eventi.length} occasioni nel {annoInVista.anno}</span>}
           </div>
-          {modo === "mese" && dati.temi_mese[String(corrente.getMonth() + 1)] && (
-            <div className="tema"><div><b>Il tema del mese</b><p>{dati.temi_mese[String(corrente.getMonth() + 1)]}</p></div></div>
+          {modo === "mese" && temaDelMese && (
+            <div className="tema"><div><b>Il tema del mese</b><p>{temaDelMese}</p></div></div>
           )}
-          <Vista dati={dati} modo={modo} corrente={corrente} selezionato={selezionato} onSeleziona={(d) => { setSelezionato(d); if (modo !== "mese") setCorrente(d); }} onApri={apri} />
+          <Vista eventi={dati.eventi} modo={modo} corrente={corrente} selezionato={selezionato} onSeleziona={(d) => { setSelezionato(d); if (modo !== "mese") setCorrente(d); }} onApri={apri} />
         </main>
       </div>
 
       <div className="barra-oggi">
-        <button className="btn ghost" onClick={() => { const d = dataIniziale(dati.anno); setCorrente(d); setSelezionato(d); }}>Oggi</button>
-        <button className="btn primario" onClick={() => setSidebar(true)}>{dati.categorie.find((c) => c.id === categoria)?.label || "Categoria"}</button>
+        <button className="btn ghost" onClick={vaiAOggi}>Oggi</button>
+        <button className="btn primario" onClick={() => setSidebar(true)}>{edizione.categorie.find((c) => c.id === categoria)?.label || "Categoria"}</button>
       </div>
 
-      {onboarding && <Onboarding dati={dati} onScegli={scegliCategoria} />}
+      {onboarding && <Onboarding dati={edizione} onScegli={scegliCategoria} />}
       {wall && (aperto || perPdf) && (
-        <LeadWall dati={dati} categoriaIniziale={categoria} perPdf={perPdf} onSbloccato={sbloccato_} onChiudi={() => { setWall(false); setAperto(null); setPerPdf(false); }} />
+        <LeadWall dati={edizione} categoriaIniziale={categoria} perPdf={perPdf} onSbloccato={sbloccato_} onChiudi={() => { setWall(false); setAperto(null); setPerPdf(false); }} />
       )}
       {aperto && sbloccato && !wall && (
-        <EventModal dati={dati} evento={aperto} categoria={categoria} onCategoria={scegliCategoria} onChiudi={() => setAperto(null)} onToast={setToast} />
+        <EventModal dati={edizione} evento={aperto} categoria={categoria} onCategoria={scegliCategoria} onChiudi={() => setAperto(null)} onToast={setToast} />
       )}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

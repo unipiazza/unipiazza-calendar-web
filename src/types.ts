@@ -18,20 +18,26 @@ export interface Evento {
   end_date: string | null;
   period_name?: string | null;
   name: string;
-  type: Tipo;
-  level: Livello;
+  type: Tipo | null;
+  level: Livello | null;
   color: "red" | "blue";
   description: string;
-  anticipo_giorni: number;
-  suggestions: Record<string, Idea>;
+  anticipo_giorni: number | null;
+  suggestions: Partial<Record<string, Idea>>;
 }
 
 export interface Calendario {
   anno: number;
-  aggiornato: string;
+  aggiornato?: string;
   categorie: Categoria[];
   temi_mese: Record<string, string>;
   eventi: Evento[];
+}
+
+export interface CalendarioMultianno {
+  versione: 1;
+  anno_edizione: number;
+  anni: Calendario[];
 }
 
 export interface Lead {

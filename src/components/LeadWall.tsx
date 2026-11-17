@@ -61,7 +61,7 @@ export function LeadWall({ dati, categoriaIniziale, onSbloccato, onChiudi, perPd
           {modo === "register"
             ? perPdf
               ? `Lascia i tuoi dati e scarica il PDF con tutte le ${dati.eventi.length} date del ${dati.anno}. Qui trovi anche le idee pronte per la tua attività, gratis.`
-              : `Lascia i tuoi dati e apri tutte le ${dati.eventi.length} date con le idee per la tua attività. Gratis, per tutto il ${dati.anno}.`
+              : "Lascia i tuoi dati e sblocca le idee per la tua attività, gratis."
             : "Inserisci l'email con cui hai già sbloccato il calendario."}
         </p>
         <form className="form" onSubmit={invia} noValidate>

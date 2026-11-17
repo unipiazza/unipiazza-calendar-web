@@ -119,5 +119,47 @@ for (const [w, h] of [[375, 812], [1280, 900]]) {
   await p2.screenshot({ path: `s-${w}-10-login.png` });
   await p.close(); await p2.close();
 }
+const archivio = await pagina(1280, 900);
+const urlEvento = (id) => base + "/?partner=prova&categoria=abbigliamento&evento=" + id;
+await archivio.goto(urlEvento("2027-01-01-capodanno"), { waitUntil: "networkidle0" });
+await archivio.waitForSelector("#ev-titolo");
+await archivio.click(".modale .chiudi");
+await archivio.click('[aria-label="Indietro"]');
+await archivio.waitForFunction(() => document.querySelector(".periodo")?.textContent === "dicembre 2026");
+const storico = await archivio.evaluate(() => ({
+  count: document.querySelector(".barra-vista .chip")?.textContent,
+  tema: !!document.querySelector(".tema"),
+  eventi: document.querySelectorAll(".griglia button.ev-btn").length,
+}));
+if (storico.count !== "93 occasioni nel 2026" || storico.tema || !storico.eventi) {
+  errori.push("[Archivio] dicembre 2026 mostra dati dell'anno sbagliato");
+}
+
+await archivio.goto(urlEvento("jan-1"), { waitUntil: "networkidle0" });
+await archivio.waitForSelector("#ev-titolo");
+const eventoStorico = await archivio.evaluate(() => ({
+  data: document.querySelector(".modale .sotto")?.textContent,
+  idea: document.querySelector(".modale .idea p")?.textContent,
+  nota: document.querySelector(".modale .nota")?.textContent,
+  pdf: document.querySelector('.modale a[href$=".pdf"]')?.textContent,
+}));
+if (!eventoStorico.data?.includes("2026") || !eventoStorico.idea || !eventoStorico.nota?.includes("negozi al dettaglio")) {
+  errori.push("[Archivio] link storico o idea per negozi al dettaglio mancante");
+}
+if (!eventoStorico.pdf?.includes("2027")) errori.push("[Archivio] edizione del PDF ambigua");
+
+await archivio.goto(urlEvento("2027-12-08-immacolata-concezione"), { waitUntil: "networkidle0" });
+await archivio.waitForSelector("#ev-titolo");
+await archivio.click(".modale .chiudi");
+await archivio.click('.segmenti button:nth-child(2)');
+for (let i = 0; i < 4; i++) await archivio.click('[aria-label="Avanti"]');
+const periodoAttivo = await archivio.evaluate(() => {
+  const giorni = Array.from(document.querySelectorAll(".giorno-col"));
+  const contieneImmacolata = (giorno) =>
+    !!giorno?.querySelector(".card-ev") && giorno.textContent.includes("Immacolata");
+  return contieneImmacolata(giorni[3]) && !contieneImmacolata(giorni[4]);
+});
+if (!periodoAttivo) errori.push("[Archivio] il periodo deve risultare attivo il 6 gennaio 2028 e terminato il 7");
+await archivio.close();
 await browser.close();
 console.log(errori.length ? errori.join("\n") : "NESSUN PROBLEMA");

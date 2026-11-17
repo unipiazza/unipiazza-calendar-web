@@ -6,15 +6,16 @@ to an iCalendar feed.
 
 ## Run locally
 
-Place a calendar JSON file matching the schema in [src/types.ts](src/types.ts)
-at `data/calendario-2027.json`, then run:
+Place the private multi-year calendar JSON at `data/calendario-2026-2027.json`.
+The development server returns the public fields defined in [src/types.ts](src/types.ts).
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Use `python3 scripts/genera-ics.py` to generate the category feeds. The
+Use `python3 scripts/genera-ics.py` with the yearly `data/calendario-2027.json`
+to regenerate the category feeds for the current edition. The
 [browser test](test/) simulates form submissions.
 
 ## Deploy
@@ -22,8 +23,12 @@ Use `python3 scripts/genera-ics.py` to generate the category feeds. The
 `npm run build` produces the static site in `dist/`. Serve it alongside two
 same-origin routes:
 
-- `GET /api/calendar` returns the calendar JSON.
+- `GET /api/calendar/v2` returns the public multi-year dataset.
 - `POST /api/lead` accepts the form payload and returns HTTP 200 on success.
+
+Use [scripts/public-calendar.mjs](scripts/public-calendar.mjs) to project the
+private data into the public response. Older app versions use
+`GET /api/calendar` with the single-year 2027 response.
 
 Configure the data source and form integration on the server. Keep upstream
 URLs and credentials in private server configuration. Serve the optional PDF
