@@ -36,8 +36,8 @@ jobs:
       - name: Publish
         env:
           DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
-          KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
-          VPS_HOST: ${{ vars.VPS_HOST }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
           printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/deploy_key"
