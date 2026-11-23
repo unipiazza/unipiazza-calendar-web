@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   deploy:
-    # Repo-level runner dedicated to this repository (no other jobs, no other secrets)
-    runs-on: calendar-deploy
+    # Public repository: GitHub-hosted runner (free for public repos), never our servers
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
