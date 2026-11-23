@@ -16,7 +16,7 @@ concurrency:
 jobs:
   deploy:
     # Repo-level runner dedicated to this repository (no other jobs, no other secrets)
-    runs-on: [self-hosted, calendar-deploy]
+    runs-on: calendar-deploy
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
